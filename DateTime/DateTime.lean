@@ -13,6 +13,19 @@ deriving Repr
 
 namespace DateTime
 
+def add (dt : DateTime) (year mon day : Nat) (time : Time) : DateTime :=
+  let (time', days) := dt.time.add_carry time
+  let date' := dt.date.add_ymd year mon (day + days)
+  ⟨date', time'⟩
+
+def add_time (dt : DateTime) : Time → DateTime := add dt 0 0 0
+def add_ymd (dt : DateTime) (year mon day : Nat) : DateTime :=
+  add dt year mon day Time.midnight
+
+instance : HAdd DateTime Time DateTime := ⟨add_time⟩
+instance : HAdd DateTime (Nat × Nat × Nat) DateTime :=
+  ⟨fun dt (y, m, d) => add_ymd dt y m d⟩
+
 def basic_format : DateTime → String
   | ⟨date, time⟩ => s!"{date.basic_format}{time.basic_format}"
 
@@ -30,6 +43,20 @@ def parse (str : String) : Except String DateTime := do
 
 
 namespace Offset
+
+def add (dt : Offset) (year mon day : Nat) (time : Time) : Offset :=
+  let (time', days) := dt.time.add_carry time
+  let date' := dt.date.add_ymd year mon (day + days)
+  ⟨date', time'⟩
+
+def add_time (dt : DateTime.Offset) : Time → DateTime.Offset := add dt 0 0 0
+def add_ymd (dt : DateTime.Offset) (year mon day : Nat) : DateTime.Offset :=
+  add dt year mon day Time.midnight
+
+instance : HAdd DateTime.Offset Time DateTime.Offset := ⟨add_time⟩
+instance : HAdd DateTime.Offset (Nat × Nat × Nat) DateTime.Offset :=
+  ⟨fun dt (y, m, d) => add_ymd dt y m d⟩
+
 
 def basic_format : Offset → String
   | ⟨date, offset⟩ => s!"{date.basic_format}{offset.basic_format}"

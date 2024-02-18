@@ -69,6 +69,38 @@ deriving Repr
 
 namespace Time
 
+def add_carry : Time → Time → (Time × Nat)
+  | ⟨h₁, m₁, s₁, _⟩, ⟨h₂, m₂, s₂, _⟩ =>
+    let s := s₁.val + s₂.val
+    let m := m₁.val + m₂.val + (s / 60)
+    let h := h₁.val + h₂.val + (m / 60)
+    let time :=
+      { hour   := ⟨h % 24, by
+                    have := Nat.mod_lt h (y := 24) (by decide)
+                    exact Nat.lt_trans this (Nat.lt_succ_self _)
+                  ⟩
+        minute := ⟨m % 60, by exact Nat.mod_lt m (by decide)⟩
+        second := ⟨s % 60, by
+                    have := Nat.mod_lt s (y := 60) (by decide)
+                    exact Nat.lt_trans this (Nat.lt_succ_self _)
+                  ⟩
+        wf := by
+          simp; intro p
+          have := Nat.mod_lt h (y := 24) (by decide)
+          simp [p] at this
+      }
+    (time, h / 24)
+
+@[inline] def add (t₁ t₂ : Time) : Time := add_carry t₁ t₂ |>.1
+instance : HAdd Time Time Time := ⟨add⟩
+
+def midnight : Time :=
+  ⟨⟨0, by decide⟩, ⟨0, by decide⟩, ⟨0, by decide⟩, by simp⟩
+def noon : Time :=
+  ⟨⟨12, by decide⟩, ⟨0, by decide⟩, ⟨0, by decide⟩, by simp⟩
+def end_of_day : Time :=
+  ⟨⟨24, by decide⟩, ⟨0, by decide⟩, ⟨0, by decide⟩, by simp⟩
+
 def basic_format : Time → String
   | ⟨h, m, s, _⟩ => s!"T{h.to_hh}{m.to_mm}{s.to_ss}"
 
@@ -157,7 +189,18 @@ structure Offset where
   offset_minute : Minute
 deriving Repr
 
+def UTC (time : Time) : Offset := ⟨time, true, ⟨0, by decide⟩, ⟨0, by decide⟩⟩
+def UTC.midnight   : Offset := UTC .midnight
+def UTC.noon       : Offset := UTC .noon
+def UTC.end_of_day : Offset := UTC .end_of_day
+
 namespace Offset
+
+def add_carry (t₁ : Time.Offset) (t₂ : Time) : (Time.Offset × Nat) :=
+  let (time', days) := t₁.time.add_carry t₂
+  ({ t₁ with time := time' }, days)
+def add (t₁ : Time.Offset) (t₂ : Time) : Time.Offset := t₁.add_carry t₂ |>.1
+instance : HAdd Time.Offset Time Time.Offset := ⟨add⟩
 
 def basic_format : Offset → String
   | ⟨time, add?, hour, min⟩ =>

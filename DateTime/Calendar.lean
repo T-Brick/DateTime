@@ -303,7 +303,9 @@ inductive Date
 -- todo year/week; year/week;day
 deriving Repr
 
-def Date.basic_format : Date → String
+namespace Date
+
+def basic_format : Date → String
   | .century y            => y.to_YY
   | .year y               => y.to_YYYY
   | .year_month y m       => s!"{y.to_YYYY}-{m.to_MM}"
@@ -311,14 +313,14 @@ def Date.basic_format : Date → String
   | .year_day y d         => s!"{y.to_YYYY}{d.to_DDD}"
 
 /- Returns the basic format if the extend format doesn't exist -/
-def Date.extended_format : Date → String
+def extended_format : Date → String
   | .century y            => y.to_YY
   | .year y               => y.to_YYYY
   | .year_month y m       => s!"{y.to_YYYY}{m.to_MM}"
   | .year_month_day y m d => s!"{y.to_YYYY}-{m.to_MM}-{d.to_DD}"
   | .year_day y d         => s!"{y.to_YYYY}-{d.to_DDD}"
 
-def Date.parse_basic_format (str : String) : Except String Date := do
+def parse_basic_format (str : String) : Except String Date := do
   let s := str
   try
     let (c, s) ← Year.parse_YY s
@@ -341,7 +343,7 @@ def Date.parse_basic_format (str : String) : Except String Date := do
       if s = "" then return .year_month_day y m d
       throw s!"Failed to parse date from {str}!"
 
-def Date.parse_extended_format (str : String) : Except String Date := do
+def parse_extended_format (str : String) : Except String Date := do
   let s := str
 
   let (y, s) ← Year.parse_YYYY s
@@ -361,13 +363,13 @@ def Date.parse_extended_format (str : String) : Except String Date := do
     if s = "" then return .year_month_day y m d
     throw s!"Failed to parse date from {str}!"
 
-def Date.parse (str : String) : Except String Date := do
+def parse (str : String) : Except String Date := do
   try Date.parse_basic_format str
   catch _ =>
     try Date.parse_extended_format str
     catch _ => throw s!"Could not parse date from {str}"
 
-def Date.add_ymd (date : Date) (year mon day : Nat) : Date :=
+def add_ymd (date : Date) (year mon day : Nat) : Date :=
   match date with
   | .century y            => .century ((y.toNat + year) % 100)
   | .year y               => .year (y.toNat + year)
@@ -405,3 +407,6 @@ decreasing_by
   aux_yd =>
     have := Year.zero_lt_num_days y
     exact Nat.sub_lt (Nat.lt_trans this h) this
+
+instance : HAdd Date (Nat × Nat × Nat) Date :=
+  ⟨fun date (y, m, d) => date.add_ymd y m d⟩
