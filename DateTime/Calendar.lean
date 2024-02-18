@@ -2,8 +2,7 @@ import DateTime.Utils
 
 namespace DateTime.Calendar
 
-def Day := Nat
-deriving Repr
+abbrev Day := Nat
 
 namespace Day
 
@@ -31,9 +30,16 @@ namespace Year
 
 def toNat : Year → Nat := cast (by unfold Year; rfl)
 instance : OfNat Year n := ⟨toNat n⟩
+instance : HAdd Year Year Year := ⟨fun y₁ y₂ => y₁.toNat + y₂.toNat⟩
+instance : HMod Year Nat Year := ⟨fun y n => y.toNat % n⟩
 
 def is_leap_year (y : Year) :=
   (y.toNat % 4 = 0 && y.toNat % 100 ≠ 0) || (y.toNat % 400 = 0)
+
+def num_days (y : Year) : Nat := if y.is_leap_year then 366 else 365
+
+theorem zero_lt_num_days : ∀ y, 0 < num_days y := by
+  intro y; rw [num_days]; cases is_leap_year y <;> decide
 
 def to_YYYY (y : Year) : String := (toString <| show Nat from y).leftpad0 4
 def to_YY (y : Year) : String :=
@@ -114,7 +120,7 @@ def ofNat! (n : Nat) : Month :=
   | some m => m
   | none   => default
 
-
+/- Number of days in a month, assuming it is not a leap year -/
 @[inline] def common_num_days : Month → Day
   | .january   => 31
   | .february  => 28
@@ -129,9 +135,33 @@ def ofNat! (n : Nat) : Month :=
   | .november  => 30
   | .december  => 31
 
+/- The number of days in a month in a given year -/
 def num_days (y : Year) : Month → Day
   | .february => if y.is_leap_year then 29 else 28
   | m => m.common_num_days
+
+theorem zero_lt_common_num_days : ∀ m, 0 < common_num_days m := by
+  intro m; cases m <;> simp (config := {decide := true}) [common_num_days]
+
+theorem zero_lt_num_days : ∀ y m, 0 < num_days y m := by
+  intro y m; cases m <;> (simp [num_days]; try exact zero_lt_common_num_days _)
+  cases Year.is_leap_year y <;> (simp; decide)
+
+/- The next corresponding month and year -/
+def next (year : Year) : Month → Month × Year
+  | .january   => (.february , year)
+  | .february  => (.march    , year)
+  | .march     => (.april    , year)
+  | .april     => (.may      , year)
+  | .may       => (.june     , year)
+  | .june      => (.july     , year)
+  | .july      => (.august   , year)
+  | .august    => (.september, year)
+  | .september => (.october  , year)
+  | .october   => (.november , year)
+  | .november  => (.december , year)
+  | .december  => (.january  , year + 1)
+
 
 def to_MM (m : Month) : String := (toString m.toNat).leftpad0 2
 
@@ -178,7 +208,7 @@ def to_fr : Month → String
   | .april     => "avril"
   | .may       => "mai"
   | .june      => "juin"
-  | .july      => "julliet"
+  | .july      => "juillet"
   | .august    => "août"
   | .september => "septembre"
   | .october   => "octobre"
@@ -336,3 +366,42 @@ def Date.parse (str : String) : Except String Date := do
   catch _ =>
     try Date.parse_extended_format str
     catch _ => throw s!"Could not parse date from {str}"
+
+def Date.add_ymd (date : Date) (year mon day : Nat) : Date :=
+  match date with
+  | .century y            => .century ((y.toNat + year) % 100)
+  | .year y               => .year (y.toNat + year)
+  | .year_month y m       =>
+    let m' := Month.ofNat! <| ((m.toNat - 1 + mon) % 12) + 1
+    let y' := y.toNat + ((m.toNat - 1 + mon) / 12) + year
+    .year_month y' m'
+  | .year_month_day y m d =>
+    let m' := Month.ofNat! <| ((m.toNat - 1 + mon) % 12) + 1
+    let y' := y.toNat + ((m.toNat - 1 + mon) / 12) + year
+    aux_ymd y' m' (d + day)
+  | .year_day y d         =>
+    aux_yd (y.toNat + year) (d + day)
+
+where
+  aux_ymd (y : Year) (m : Month) (days : Nat) : Date :=
+    let max_days := m.num_days y
+    if h : days > max_days then -- used in the `decreasing_by`
+      let (mon', year') := m.next y
+      aux_ymd year' mon' (days - max_days)
+    else .year_month_day y m days
+  aux_yd (y : Year) (days : Nat) : Date :=
+    let max_days := y.num_days
+    if h : days > max_days then -- used in the `decreasing_by`
+      aux_yd (y + 1) (days - max_days)
+    else .year_day y days
+
+termination_by
+  aux_ymd y m d => d
+  aux_yd y d => d
+decreasing_by
+  aux_ymd =>
+    have := Month.zero_lt_num_days y m
+    exact Nat.sub_lt (Nat.lt_trans this h) this
+  aux_yd =>
+    have := Year.zero_lt_num_days y
+    exact Nat.sub_lt (Nat.lt_trans this h) this
