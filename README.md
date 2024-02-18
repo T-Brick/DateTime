@@ -10,8 +10,7 @@ Contributions welcome! <3
 Add the following to your `lakefile.lean`:
 
 ```lean
-require leancolls from git
-  "https://github.com/T-Brick/DateTime" @ "main"
+require datetime from git "https://github.com/T-Brick/DateTime" @ "main"
 ```
 
 Then you can add and use it in your projects:
