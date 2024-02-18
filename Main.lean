@@ -1,3 +1,7 @@
+/- Copyright (c) 2024 Theodora Brick.
+
+Authors: Thea Brick
+-/
 import «DateTime»
 
 def main : IO Unit := return

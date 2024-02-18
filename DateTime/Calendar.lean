@@ -1,3 +1,8 @@
+/- Copyright (c) 2024 Theodora Brick.
+
+Authors: Thea Brick
+-/
+
 import DateTime.Utils
 
 namespace DateTime.Calendar
