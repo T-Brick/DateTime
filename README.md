@@ -18,7 +18,11 @@ Then you can add and use it in your projects:
 ```lean
 import DateTime
 
--- Here's some examples using the notation:
+#eval DateTime.now                      -- The current system time (UTC)
+
+
+open DateTime.Notation                  -- Examples using notation
+
 #eval date% 2024-02-29                  -- 2024-02-29
 #eval date% 2024-06                     -- 2024-06
 #eval date% "2024-10-23"                -- Except.ok 2024-10-23

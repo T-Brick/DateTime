@@ -9,11 +9,11 @@ import DateTime.DateTime
 namespace DateTime.Notation
 
 declare_syntax_cat date
-syntax str : date
-syntax num : date
-syntax num noWs "-" noWs num : date
-syntax num noWs "-" noWs num noWs "-" noWs num : date
-syntax "date%" date : term
+scoped syntax str : date
+scoped syntax num : date
+scoped syntax num noWs "-" noWs num : date
+scoped syntax num noWs "-" noWs num noWs "-" noWs num : date
+scoped syntax "date%" date : term
 
 macro_rules
 | `(date% $s:str) => `(Calendar.Date.parse $s)
@@ -26,14 +26,14 @@ macro_rules
 
 
 declare_syntax_cat eng_date_offset
-syntax num "day"    : eng_date_offset
-syntax num "days"   : eng_date_offset
-syntax num "month"  : eng_date_offset
-syntax num "months" : eng_date_offset
-syntax num "year"   : eng_date_offset
-syntax num "years"  : eng_date_offset
-syntax "eng_date_offset%" eng_date_offset : term
-syntax "date%" date "+" eng_date_offset : term
+scoped syntax num "day"    : eng_date_offset
+scoped syntax num "days"   : eng_date_offset
+scoped syntax num "month"  : eng_date_offset
+scoped syntax num "months" : eng_date_offset
+scoped syntax num "year"   : eng_date_offset
+scoped syntax num "years"  : eng_date_offset
+scoped syntax "eng_date_offset%" eng_date_offset : term
+scoped syntax "date%" date "+" eng_date_offset : term
 
 macro_rules
 | `(date% $d:date + $off:eng_date_offset) =>
@@ -47,11 +47,11 @@ macro_rules
 
 
 declare_syntax_cat time
-syntax str : time
-syntax num : time
-syntax num noWs ":" noWs num : time
-syntax num noWs ":" noWs num noWs ":" noWs num : time
-syntax "time%" time : term
+scoped syntax str : time
+scoped syntax num : time
+scoped syntax num noWs ":" noWs num : time
+scoped syntax num noWs ":" noWs num noWs ":" noWs num : time
+scoped syntax "time%" time : term
 
 macro_rules
 | `(time% $str:str) => `(Time.parse $str)
@@ -62,22 +62,21 @@ macro_rules
 | `(time% $h:num:$m:num:$s:num) =>
   `(Time.mk ⟨$h, by decide⟩ ⟨$m, by decide⟩ ⟨$s, by decide⟩ (by simp))
 
-
 declare_syntax_cat eng_time
-syntax num "h"        : eng_time
-syntax num "hour"     : eng_time
-syntax num "hours"    : eng_time
-syntax num "m"        : eng_time
-syntax num "min"      : eng_time
-syntax num "minute"   : eng_time
-syntax num "minutes"  : eng_time
-syntax num "s"        : eng_time
-syntax num "sec"      : eng_time
-syntax num "second"   : eng_time
-syntax num "seconds"  : eng_time
-syntax "eng_time%" eng_time : term
-syntax "time%" eng_time : term
-syntax "time%" time "+" eng_time : term
+scoped syntax num "h"        : eng_time
+scoped syntax num "hour"     : eng_time
+scoped syntax num "hours"    : eng_time
+scoped syntax num "m"        : eng_time
+scoped syntax num "min"      : eng_time
+scoped syntax num "minute"   : eng_time
+scoped syntax num "minutes"  : eng_time
+scoped syntax num "s"        : eng_time
+scoped syntax num "sec"      : eng_time
+scoped syntax num "second"   : eng_time
+scoped syntax num "seconds"  : eng_time
+scoped syntax "eng_time%" eng_time : term
+scoped syntax "time%" eng_time : term
+scoped syntax "time%" time "+" eng_time : term
 
 macro_rules
 | `(time% $e:eng_time) => `(eng_time% $e)
@@ -96,13 +95,13 @@ macro_rules
 
 
 declare_syntax_cat time_offset
-syntax str : time_offset
-syntax time "Z" : time_offset -- todo: this shouldn't have white space
-syntax time noWs "+" noWs num : time_offset
-syntax time noWs "+" noWs num noWs ":" noWs num : time_offset
-syntax time noWs "-" noWs num : time_offset
-syntax time noWs "-" noWs num noWs ":" noWs num : time_offset
-syntax "time_offset%" time_offset : term
+scoped syntax str : time_offset
+scoped syntax time "Z" : time_offset -- todo: this shouldn't have white space
+scoped syntax time noWs "+" noWs num : time_offset
+scoped syntax time noWs "+" noWs num noWs ":" noWs num : time_offset
+scoped syntax time noWs "-" noWs num : time_offset
+scoped syntax time noWs "-" noWs num noWs ":" noWs num : time_offset
+scoped syntax "time_offset%" time_offset : term
 
 macro_rules
 | `(time_offset% $str:str) => `(Time.Offset.parse $str)
@@ -118,9 +117,9 @@ macro_rules
 
 
 declare_syntax_cat datetime
-syntax str : datetime
-syntax date "T" time_offset : datetime -- todo should be noWs
-syntax "datetime%" datetime : term
+scoped syntax str : datetime
+scoped syntax date "T" time_offset : datetime -- todo should be noWs
+scoped syntax "datetime%" datetime : term
 
 macro_rules
 | `(datetime% $str:str) => `(DateTime.Offset.parse $str)

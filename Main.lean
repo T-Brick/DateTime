@@ -9,7 +9,11 @@ def main : IO Unit := do
   IO.println str
   return
 
--- Here's an example of using some notation
+#eval DateTime.now                      -- The current system time (UTC)
+
+
+open DateTime.Notation                  -- Examples using notation
+
 #eval date% 2024-02-29                  -- 2024-02-29
 #eval date% 2024-06                     -- 2024-06
 #eval date% "2024-10-23"                -- Except.ok 2024-10-23
@@ -18,4 +22,3 @@ def main : IO Unit := do
 #eval time_offset% 14:54:32-07:00       -- 14:54:32-07:00
 #eval datetime% "2024-02-18T22:57:10Z"  -- Except.ok 2024-02-18T22:57:10Z
 
-#eval DateTime.now
