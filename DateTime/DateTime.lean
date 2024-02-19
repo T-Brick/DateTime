@@ -9,12 +9,10 @@ import DateTime.Time
 structure DateTime where
   date : DateTime.Calendar.Date
   time : DateTime.Time
-deriving Repr
 
 structure DateTime.Offset where
   date : DateTime.Calendar.Date
   time : DateTime.Time.Offset
-deriving Repr
 
 namespace DateTime
 
@@ -36,6 +34,8 @@ def basic_format : DateTime → String
 
 def extended_format : DateTime → String
   | ⟨date, time⟩ => s!"{date.extended_format}{time.extended_format}"
+instance : Repr DateTime := ⟨fun dt _ => dt.extended_format⟩
+
 
 def parse (str : String) : Except String DateTime := do
   match str.split (fun | 'T' => true | _ => false) with
@@ -68,6 +68,8 @@ def basic_format : Offset → String
 
 def extended_format : Offset → String
   | ⟨date, offset⟩ => s!"{date.extended_format}{offset.extended_format}"
+instance : Repr DateTime.Offset := ⟨fun dt _ => dt.extended_format⟩
+
 
 def parse (str : String) : Except String DateTime.Offset := do
   match str.split (fun | 'T' => true | _ => false) with

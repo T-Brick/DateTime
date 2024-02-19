@@ -7,6 +7,7 @@ import DateTime.Utils
 
 namespace DateTime.Calendar
 
+
 abbrev Day := Nat
 
 namespace Day
@@ -28,8 +29,8 @@ def parse_DDD : String → Except String (Day × String) := parse_Dn 3
 
 end Day
 
+
 def Year := Nat
-deriving Repr
 
 namespace Year
 
@@ -49,6 +50,8 @@ theorem zero_lt_num_days : ∀ y, 0 < num_days y := by
 def to_YYYY (y : Year) : String := (toString <| show Nat from y).leftpad0 4
 def to_YY (y : Year) : String :=
   (toString <| (show Nat from y) % 100).leftpad0 2
+instance : Repr Year := ⟨fun y _ => to_YYYY y⟩
+
 
 @[inline] private def parse_Yn (len : Nat) (s : String)
     : Except String (Year × String) := do
@@ -74,7 +77,7 @@ inductive Month
 | october
 | november
 | december
-deriving Repr, Inhabited
+deriving Inhabited
 
 namespace Month
 
@@ -170,11 +173,13 @@ def next (year : Year) : Month → Month × Year
 
 def to_MM (m : Month) : String := (toString m.toNat).leftpad0 2
 
+
 def parse_MM (s : String) : Except String (Month × String) := do
   if s.length ≥ 2 then
     if let some n := (s.extract ⟨0⟩ ⟨2⟩).toNat? then
       if let some m := Month.ofNat? n then return ⟨m, s.drop 2⟩
   throw s!"Could not parse MM from {s}"
+
 
 /- Todo: Add more language formats -- also should there be 3 letter abbrevs? -/
 def to_eng : Month → String
@@ -190,6 +195,7 @@ def to_eng : Month → String
   | .october   => "October"
   | .november  => "November"
   | .december  => "December"
+instance : Repr Month := ⟨fun m _ => m.to_eng⟩
 
 def to_eng_abbrev : Month → String
   | .january   => "Jan."
@@ -236,6 +242,7 @@ def to_fr_abbrev : Month → String
 
 end Month
 
+
 inductive WeekDay
 | monday
 | tuesday
@@ -247,8 +254,6 @@ inductive WeekDay
 
 namespace WeekDay
 
-namespace Format
-
 def to_eng : WeekDay → String
   | .monday    => "Monday"
   | .tuesday   => "Tuesday"
@@ -257,6 +262,7 @@ def to_eng : WeekDay → String
   | .friday    => "Friday"
   | .saturday  => "Saturday"
   | .sunday    => "Sunday"
+instance : Repr WeekDay := ⟨fun wd _ => wd.to_eng⟩
 
 def to_eng_abbrev : WeekDay → String
   | .monday    => "Mon"
@@ -295,9 +301,8 @@ def to_fr_abbrev : WeekDay → String
   | .saturday  => "sam."
   | .sunday    => "dim."
 
-end Format
-
 end WeekDay
+
 
 inductive Date
 | century        : Year → Date
@@ -305,10 +310,51 @@ inductive Date
 | year_month     : Year → Month → Date
 | year_month_day : Year → Month → Day → Date
 | year_day       : Year → Day → Date
--- todo year/week; year/week;day
-deriving Repr
 
 namespace Date
+
+def add_ymd (date : Date) (year mon day : Nat) : Date :=
+  match date with
+  | .century y            => .century ((y.toNat + year) % 100)
+  | .year y               => .year (y.toNat + year)
+  | .year_month y m       =>
+    let m' := Month.ofNat! <| ((m.toNat - 1 + mon) % 12) + 1
+    let y' := y.toNat + ((m.toNat - 1 + mon) / 12) + year
+    .year_month y' m'
+  | .year_month_day y m d =>
+    let m' := Month.ofNat! <| ((m.toNat - 1 + mon) % 12) + 1
+    let y' := y.toNat + ((m.toNat - 1 + mon) / 12) + year
+    aux_ymd y' m' (d + day)
+  | .year_day y d         =>
+    aux_yd (y.toNat + year) (d + day)
+
+where
+  aux_ymd (y : Year) (m : Month) (days : Nat) : Date :=
+    let max_days := m.num_days y
+    if h : days > max_days then -- used in the `decreasing_by`
+      let (mon', year') := m.next y
+      aux_ymd year' mon' (days - max_days)
+    else .year_month_day y m days
+  aux_yd (y : Year) (days : Nat) : Date :=
+    let max_days := y.num_days
+    if h : days > max_days then -- used in the `decreasing_by`
+      aux_yd (y + 1) (days - max_days)
+    else .year_day y days
+
+termination_by
+  aux_ymd y m d => d
+  aux_yd y d => d
+decreasing_by
+  aux_ymd =>
+    have := Month.zero_lt_num_days y m
+    exact Nat.sub_lt (Nat.lt_trans this h) this
+  aux_yd =>
+    have := Year.zero_lt_num_days y
+    exact Nat.sub_lt (Nat.lt_trans this h) this
+
+instance : HAdd Date (Nat × Nat × Nat) Date :=
+  ⟨fun date (y, m, d) => date.add_ymd y m d⟩
+
 
 def basic_format : Date → String
   | .century y            => y.to_YY
@@ -324,6 +370,8 @@ def extended_format : Date → String
   | .year_month y m       => s!"{y.to_YYYY}{m.to_MM}"
   | .year_month_day y m d => s!"{y.to_YYYY}-{m.to_MM}-{d.to_DD}"
   | .year_day y d         => s!"{y.to_YYYY}-{d.to_DDD}"
+instance : Repr Date := ⟨fun date _ => date.extended_format⟩
+
 
 def parse_basic_format (str : String) : Except String Date := do
   let s := str
@@ -373,45 +421,3 @@ def parse (str : String) : Except String Date := do
   catch _ =>
     try Date.parse_extended_format str
     catch _ => throw s!"Could not parse date from {str}"
-
-def add_ymd (date : Date) (year mon day : Nat) : Date :=
-  match date with
-  | .century y            => .century ((y.toNat + year) % 100)
-  | .year y               => .year (y.toNat + year)
-  | .year_month y m       =>
-    let m' := Month.ofNat! <| ((m.toNat - 1 + mon) % 12) + 1
-    let y' := y.toNat + ((m.toNat - 1 + mon) / 12) + year
-    .year_month y' m'
-  | .year_month_day y m d =>
-    let m' := Month.ofNat! <| ((m.toNat - 1 + mon) % 12) + 1
-    let y' := y.toNat + ((m.toNat - 1 + mon) / 12) + year
-    aux_ymd y' m' (d + day)
-  | .year_day y d         =>
-    aux_yd (y.toNat + year) (d + day)
-
-where
-  aux_ymd (y : Year) (m : Month) (days : Nat) : Date :=
-    let max_days := m.num_days y
-    if h : days > max_days then -- used in the `decreasing_by`
-      let (mon', year') := m.next y
-      aux_ymd year' mon' (days - max_days)
-    else .year_month_day y m days
-  aux_yd (y : Year) (days : Nat) : Date :=
-    let max_days := y.num_days
-    if h : days > max_days then -- used in the `decreasing_by`
-      aux_yd (y + 1) (days - max_days)
-    else .year_day y days
-
-termination_by
-  aux_ymd y m d => d
-  aux_yd y d => d
-decreasing_by
-  aux_ymd =>
-    have := Month.zero_lt_num_days y m
-    exact Nat.sub_lt (Nat.lt_trans this h) this
-  aux_yd =>
-    have := Year.zero_lt_num_days y
-    exact Nat.sub_lt (Nat.lt_trans this h) this
-
-instance : HAdd Date (Nat × Nat × Nat) Date :=
-  ⟨fun date (y, m, d) => date.add_ymd y m d⟩

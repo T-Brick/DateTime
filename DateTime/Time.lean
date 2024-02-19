@@ -9,12 +9,13 @@ namespace DateTime.Time
 
 /- Tehnically ISO 8601 allows for 24:00:00 to be used -/
 def Hour := Fin 25
-deriving Repr
 
 namespace Hour
 
 def to_hh : Hour → String
   | ⟨h, _⟩ => (toString h).leftpad0 2
+instance : Repr Hour := ⟨fun h _ => h.to_hh⟩
+
 
 def parse_hh (s : String) : Except String (Hour × String) := do
   if s.length ≥ 2 then
@@ -26,13 +27,15 @@ def parse_hh (s : String) : Except String (Hour × String) := do
 
 end Hour
 
+
 def Minute := Fin 60
-deriving Repr
 
 namespace Minute
 
 def to_mm : Minute → String
   | ⟨m, _⟩ => (toString m).leftpad0 2
+instance : Repr Minute := ⟨fun m _ => m.to_mm⟩
+
 
 def parse_mm (s : String) : Except String (Minute × String) := do
   if s.length ≥ 2 then
@@ -46,12 +49,13 @@ end Minute
 
 /- Use 61 because of leap seconds -/
 def Second := Fin 61
-deriving Repr
 
 namespace Second
 
 def to_ss : Second → String
   | ⟨s, _⟩ => (toString s).leftpad0 2
+instance : Repr Second := ⟨fun s _ => s.to_ss⟩
+
 
 def parse_ss (s : String) : Except String (Second × String) := do
   if s.length ≥ 2 then
@@ -70,9 +74,15 @@ structure Time where
   minute : Time.Minute
   second : Time.Second
   wf : hour.val = 24 → minute.val = 0 ∧ second.val = 0
-deriving Repr
 
 namespace Time
+
+def midnight : Time :=
+  ⟨⟨0, by decide⟩, ⟨0, by decide⟩, ⟨0, by decide⟩, by simp⟩
+def noon : Time :=
+  ⟨⟨12, by decide⟩, ⟨0, by decide⟩, ⟨0, by decide⟩, by simp⟩
+def end_of_day : Time :=
+  ⟨⟨24, by decide⟩, ⟨0, by decide⟩, ⟨0, by decide⟩, by simp⟩
 
 def add_carry : Time → Time → (Time × Nat)
   | ⟨h₁, m₁, s₁, _⟩, ⟨h₂, m₂, s₂, _⟩ =>
@@ -99,18 +109,15 @@ def add_carry : Time → Time → (Time × Nat)
 @[inline] def add (t₁ t₂ : Time) : Time := add_carry t₁ t₂ |>.1
 instance : HAdd Time Time Time := ⟨add⟩
 
-def midnight : Time :=
-  ⟨⟨0, by decide⟩, ⟨0, by decide⟩, ⟨0, by decide⟩, by simp⟩
-def noon : Time :=
-  ⟨⟨12, by decide⟩, ⟨0, by decide⟩, ⟨0, by decide⟩, by simp⟩
-def end_of_day : Time :=
-  ⟨⟨24, by decide⟩, ⟨0, by decide⟩, ⟨0, by decide⟩, by simp⟩
 
 def basic_format : Time → String
   | ⟨h, m, s, _⟩ => s!"T{h.to_hh}{m.to_mm}{s.to_ss}"
 
-def extended_format : Time → String
-  | ⟨h, m, s, _⟩ => s!"T{h.to_hh}:{m.to_mm}:{s.to_ss}"
+def extended_format (include_T := true) : Time → String
+  | ⟨h, m, s, _⟩ =>
+    s!"{if include_T then "T" else ""}{h.to_hh}:{m.to_mm}:{s.to_ss}"
+instance : Repr Time := ⟨fun t _ => t.extended_format (include_T := false)⟩
+
 
 private def parse_basic_hour_min (str : String)
     : Except String (Time × String) := do
@@ -192,7 +199,6 @@ structure Offset where
   offset_add    : Bool
   offset_hour   : Hour
   offset_minute : Minute
-deriving Repr
 
 def UTC (time : Time) : Offset := ⟨time, true, ⟨0, by decide⟩, ⟨0, by decide⟩⟩
 def UTC.midnight   : Offset := UTC .midnight
@@ -218,6 +224,7 @@ def extended_format : Offset → String
     if hour.val = 0 ∧ min.val = 0 then s!"{time.extended_format}Z" else
     let c := if add? then "+" else "-"
     s!"{time.extended_format}{c}{hour.to_hh}:{min.to_mm}"
+instance : Repr Time.Offset := ⟨fun t _ => t.extended_format⟩
 
 
 private def parse_basic_offset_component (time : Time) (str : String)
