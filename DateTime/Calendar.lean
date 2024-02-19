@@ -367,7 +367,7 @@ def basic_format : Date → String
 def extended_format : Date → String
   | .century y            => y.to_YY
   | .year y               => y.to_YYYY
-  | .year_month y m       => s!"{y.to_YYYY}{m.to_MM}"
+  | .year_month y m       => s!"{y.to_YYYY}-{m.to_MM}"
   | .year_month_day y m d => s!"{y.to_YYYY}-{m.to_MM}-{d.to_DD}"
   | .year_day y d         => s!"{y.to_YYYY}-{d.to_DDD}"
 instance : Repr Date := ⟨fun date _ => date.extended_format⟩
