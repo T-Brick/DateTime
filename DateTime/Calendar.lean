@@ -29,6 +29,11 @@ instance : HAdd Day Day Day := ⟨Day.add⟩
 @[simp] instance : LT Day := ⟨fun d₁ d₂ => d₁.val < d₂.val⟩
 @[simp] instance : LE Day := ⟨fun d₁ d₂ => d₁.val ≤ d₂.val⟩
 instance : Coe Day Nat := ⟨(·.val)⟩
+instance : Inhabited Day := ⟨1⟩
+instance (d₁ d₂ : Day) : Decidable (d₁ < d₂) :=
+  inferInstanceAs (Decidable (d₁.val < d₂.val))
+instance (d₁ d₂ : Day) : Decidable (d₁ ≤ d₂) :=
+  inferInstanceAs (Decidable (d₁.val ≤ d₂.val))
 instance : DecidableEq Day := fun d₁ d₂ =>
   match decEq d₁.val d₂.val with
   | isTrue h  => isTrue (Subtype.eq h)
@@ -51,13 +56,16 @@ end Day
 
 
 def Year := Nat
+deriving Inhabited, DecidableEq
 
 namespace Year
 
 def toNat : Year → Nat := cast (by unfold Year; rfl)
 instance : OfNat Year n := ⟨toNat n⟩
-instance : HAdd Year Year Year := ⟨fun y₁ y₂ => y₁.toNat + y₂.toNat⟩
+instance : HAdd Year Nat Year := ⟨fun y₁ y₂ => y₁.toNat + y₂⟩
 instance : HMod Year Nat Year := ⟨fun y n => y.toNat % n⟩
+instance : LT Year := ⟨(·.toNat < ·.toNat)⟩
+instance : LE Year := ⟨(·.toNat ≤ ·.toNat)⟩
 
 def is_leap_year (y : Year) :=
   (y.toNat % 4 = 0 && y.toNat % 100 ≠ 0) || (y.toNat % 400 = 0)
@@ -97,7 +105,7 @@ inductive Month
 | october
 | november
 | december
-deriving Inhabited
+deriving Inhabited, DecidableEq
 
 namespace Month
 
@@ -127,6 +135,13 @@ instance : OfNat Month 9  := ⟨.september⟩
 instance : OfNat Month 10 := ⟨.october  ⟩
 instance : OfNat Month 11 := ⟨.november ⟩
 instance : OfNat Month 12 := ⟨.december ⟩
+instance : LT Month := ⟨(·.toNat < ·.toNat)⟩
+instance : LE Month := ⟨(·.toNat ≤ ·.toNat)⟩
+instance (m₁ m₂ : Month) : Decidable (m₁ < m₂) :=
+  inferInstanceAs (Decidable (m₁.toNat < m₂.toNat))
+instance (m₁ m₂ : Month) : Decidable (m₁ ≤ m₂) :=
+  inferInstanceAs (Decidable (m₁.toNat ≤ m₂.toNat))
+
 
 def ofNat? : Nat → Option Month
   | 1  => some january
@@ -264,6 +279,7 @@ inductive WeekDay
 | friday
 | saturday
 | sunday
+deriving Inhabited, DecidableEq
 
 namespace WeekDay
 
@@ -325,6 +341,7 @@ inductive Date
   : (y : Year) → (m : Month) → (d : Day) → d ≤ m.num_days y → Date
 | year_day
   : (y : Year) → (d : Day) → d.val ≤ y.num_days → Date
+deriving Inhabited, DecidableEq
 
 namespace Date
 

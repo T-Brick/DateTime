@@ -9,6 +9,7 @@ namespace DateTime.Time
 
 /- Tehnically ISO 8601 allows for 24:00:00 to be used -/
 def Hour := Fin 25
+deriving Inhabited, DecidableEq
 
 namespace Hour
 
@@ -29,6 +30,7 @@ end Hour
 
 
 def Minute := Fin 60
+deriving Inhabited, DecidableEq
 
 namespace Minute
 
@@ -49,6 +51,7 @@ end Minute
 
 /- Use 61 because of leap seconds -/
 def Second := Fin 61
+deriving Inhabited, DecidableEq
 
 namespace Second
 
@@ -74,6 +77,7 @@ structure Time where
   minute : Time.Minute
   second : Time.Second
   wf : hour.val = 24 → minute.val = 0 ∧ second.val = 0
+deriving DecidableEq
 
 namespace Time
 
@@ -83,6 +87,9 @@ def noon : Time :=
   ⟨⟨12, by decide⟩, ⟨0, by decide⟩, ⟨0, by decide⟩, by simp⟩
 def end_of_day : Time :=
   ⟨⟨24, by decide⟩, ⟨0, by decide⟩, ⟨0, by decide⟩, by simp⟩
+
+instance : Inhabited Time := ⟨midnight⟩
+
 
 def add_carry : Time → Time → (Time × Nat)
   | ⟨h₁, m₁, s₁, _⟩, ⟨h₂, m₂, s₂, _⟩ =>
@@ -199,6 +206,7 @@ structure Offset where
   offset_add    : Bool
   offset_hour   : Hour
   offset_minute : Minute
+deriving Inhabited, DecidableEq
 
 def UTC (time : Time) : Offset := ⟨time, true, ⟨0, by decide⟩, ⟨0, by decide⟩⟩
 def UTC.midnight   : Offset := UTC .midnight

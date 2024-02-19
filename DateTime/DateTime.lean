@@ -2,17 +2,19 @@
 
 Authors: Thea Brick
 -/
-
+import DateTime.FFI
 import DateTime.Calendar
 import DateTime.Time
 
 structure DateTime where
   date : DateTime.Calendar.Date
   time : DateTime.Time
+deriving Inhabited, DecidableEq
 
 structure DateTime.Offset where
   date : DateTime.Calendar.Date
   time : DateTime.Time.Offset
+deriving Inhabited, DecidableEq
 
 namespace DateTime
 
@@ -80,6 +82,14 @@ def parse (str : String) : Except String DateTime.Offset := do
   | _ => throw s!"Failed to split date and time offset in string {str}"
 
 end Offset
+
+def now : IO DateTime.Offset := do
+  let s ← now_iso_seconds
+  match DateTime.Offset.parse s with
+  | .ok dt => return dt
+  | .error err =>
+    IO.eprintln s!"Received {err} when parsing system datetime"
+    panic! "Failed to parse system datetime!"
 
 end DateTime
 
