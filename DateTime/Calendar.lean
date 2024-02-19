@@ -8,12 +8,31 @@ import DateTime.Utils
 namespace DateTime.Calendar
 
 
-abbrev Day := Nat
+def Day := {n : Nat // n ≠ 0}
+deriving DecidableEq
 
 namespace Day
 
-def toNat : Day → Nat := cast (by unfold Day; rfl)
-instance : OfNat Day n := ⟨toNat n⟩
+def toNat : Day → Nat := (·.val)
+instance : OfNat Day 1  := ⟨⟨1 , by decide⟩⟩
+instance : OfNat Day 28 := ⟨⟨28, by decide⟩⟩
+instance : OfNat Day 29 := ⟨⟨29, by decide⟩⟩
+instance : OfNat Day 30 := ⟨⟨30, by decide⟩⟩
+instance : OfNat Day 31 := ⟨⟨31, by decide⟩⟩
+
+@[simp] def Day.add : Day → Day → Day
+  | ⟨d₁, h₁⟩, ⟨d₂, _h₂⟩ =>
+    ⟨ d₁ + d₂
+    , by intro h; simp [Nat.zero_eq_add _ _ |>.mp h.symm] at h₁
+    ⟩
+instance : HAdd Day Day Day := ⟨Day.add⟩
+@[simp] instance : LT Day := ⟨fun d₁ d₂ => d₁.val < d₂.val⟩
+@[simp] instance : LE Day := ⟨fun d₁ d₂ => d₁.val ≤ d₂.val⟩
+instance : Coe Day Nat := ⟨(·.val)⟩
+instance : DecidableEq Day := fun d₁ d₂ =>
+  match decEq d₁.val d₂.val with
+  | isTrue h  => isTrue (Subtype.eq h)
+  | isFalse h => isFalse (fun h' => by simp [h'] at h)
 
 def to_DD  (d : Day) : String := (toString d.toNat).leftpad0 2
 def to_DDD (d : Day) : String := (toString d.toNat).leftpad0 3
@@ -21,7 +40,8 @@ def to_DDD (d : Day) : String := (toString d.toNat).leftpad0 3
 @[inline] private def parse_Dn (len : Nat) (s : String)
     : Except String (Day × String) := do
   if s.length ≥ len then
-    if let some n := (s.extract ⟨0⟩ ⟨len⟩).toNat? then return ⟨n, s.drop len⟩
+    if let some n := (s.extract ⟨0⟩ ⟨len⟩).toNat? then
+      if h : n ≠ 0 then return ⟨⟨n, h⟩, s.drop len⟩
   throw s!"Could not parse {String.mk (List.replicate len 'D')} from {s}"
 
 def parse_DD  : String → Except String (Day × String) := parse_Dn 2
@@ -147,13 +167,6 @@ def ofNat! (n : Nat) : Month :=
 def num_days (y : Year) : Month → Day
   | .february => if y.is_leap_year then 29 else 28
   | m => m.common_num_days
-
-theorem zero_lt_common_num_days : ∀ m, 0 < common_num_days m := by
-  intro m; cases m <;> simp (config := {decide := true}) [common_num_days]
-
-theorem zero_lt_num_days : ∀ y m, 0 < num_days y m := by
-  intro y m; cases m <;> (simp [num_days]; try exact zero_lt_common_num_days _)
-  cases Year.is_leap_year y <;> (simp; decide)
 
 /- The next corresponding month and year -/
 def next (year : Year) : Month → Month × Year
@@ -308,68 +321,84 @@ inductive Date
 | century        : Year → Date
 | year           : Year → Date
 | year_month     : Year → Month → Date
-| year_month_day : Year → Month → Day → Date
-| year_day       : Year → Day → Date
+| year_month_day
+  : (y : Year) → (m : Month) → (d : Day) → d ≤ m.num_days y → Date
+| year_day
+  : (y : Year) → (d : Day) → d.val ≤ y.num_days → Date
 
 namespace Date
 
 def add_ymd (date : Date) (year mon day : Nat) : Date :=
   match date with
-  | .century y            => .century ((y.toNat + year) % 100)
-  | .year y               => .year (y.toNat + year)
-  | .year_month y m       =>
+  | .century y              => .century ((y.toNat + year) % 100)
+  | .year y                 => .year (y.toNat + year)
+  | .year_month y m         =>
     let m' := Month.ofNat! <| ((m.toNat - 1 + mon) % 12) + 1
     let y' := y.toNat + ((m.toNat - 1 + mon) / 12) + year
     .year_month y' m'
-  | .year_month_day y m d =>
+  | .year_month_day y m d _ =>
     let m' := Month.ofNat! <| ((m.toNat - 1 + mon) % 12) + 1
     let y' := y.toNat + ((m.toNat - 1 + mon) / 12) + year
-    aux_ymd y' m' (d + day)
-  | .year_day y d         =>
-    aux_yd (y.toNat + year) (d + day)
+    aux_ymd y' m' (d.val + day)
+      (by have := d.property
+          intro h
+          simp [Nat.zero_eq_add _ _ |>.mp h.symm] at this
+      )
+  | .year_day y d _         =>
+    aux_yd (y.toNat + year) (d.val + day)
+      (by have := d.property
+          intro h
+          simp [Nat.zero_eq_add _ _ |>.mp h.symm] at this
+      )
 
 where
-  aux_ymd (y : Year) (m : Month) (days : Nat) : Date :=
+  aux_ymd (y : Year) (m : Month) (days : Nat) (nonzero : days ≠ 0) : Date :=
     let max_days := m.num_days y
-    if h : days > max_days then -- used in the `decreasing_by`
+    if h : days > max_days.val then -- used in the `decreasing_by`
       let (mon', year') := m.next y
-      aux_ymd year' mon' (days - max_days)
-    else .year_month_day y m days
-  aux_yd (y : Year) (days : Nat) : Date :=
+      aux_ymd year' mon' (days - max_days.val)
+        (Nat.not_eq_zero_of_lt (Nat.zero_lt_sub_of_lt h))
+    else .year_month_day y m ⟨days, nonzero⟩
+      (by simp [Nat.not_lt_eq _ _] at h; exact h)
+  aux_yd (y : Year) (days : Nat) (nonzero : days ≠ 0) : Date :=
     let max_days := y.num_days
     if h : days > max_days then -- used in the `decreasing_by`
       aux_yd (y + 1) (days - max_days)
-    else .year_day y days
+        (Nat.not_eq_zero_of_lt (Nat.zero_lt_sub_of_lt h))
+    else .year_day y ⟨days, nonzero⟩
+      (by simp [Nat.not_lt_eq _ _] at h; exact h)
 
 termination_by
-  aux_ymd y m d => d
-  aux_yd y d => d
+  aux_ymd y m d _ => d
+  aux_yd y d _ => d
 decreasing_by
   aux_ymd =>
-    have := Month.zero_lt_num_days y m
-    exact Nat.sub_lt (Nat.lt_trans this h) this
+    exact Nat.sub_lt
+      (Nat.zero_lt_of_ne_zero nonzero)
+      (Nat.zero_lt_of_ne_zero (Month.num_days y m).property)
   aux_yd =>
-    have := Year.zero_lt_num_days y
-    exact Nat.sub_lt (Nat.lt_trans this h) this
+    exact Nat.sub_lt
+      (Nat.zero_lt_of_ne_zero nonzero)
+      (Year.zero_lt_num_days y)
 
 instance : HAdd Date (Nat × Nat × Nat) Date :=
   ⟨fun date (y, m, d) => date.add_ymd y m d⟩
 
 
 def basic_format : Date → String
-  | .century y            => y.to_YY
-  | .year y               => y.to_YYYY
-  | .year_month y m       => s!"{y.to_YYYY}-{m.to_MM}"
-  | .year_month_day y m d => s!"{y.to_YYYY}{m.to_MM}{d.to_DD}"
-  | .year_day y d         => s!"{y.to_YYYY}{d.to_DDD}"
+  | .century y              => y.to_YY
+  | .year y                 => y.to_YYYY
+  | .year_month y m         => s!"{y.to_YYYY}-{m.to_MM}"
+  | .year_month_day y m d _ => s!"{y.to_YYYY}{m.to_MM}{d.to_DD}"
+  | .year_day y d _         => s!"{y.to_YYYY}{d.to_DDD}"
 
 /- Returns the basic format if the extend format doesn't exist -/
 def extended_format : Date → String
-  | .century y            => y.to_YY
-  | .year y               => y.to_YYYY
-  | .year_month y m       => s!"{y.to_YYYY}-{m.to_MM}"
-  | .year_month_day y m d => s!"{y.to_YYYY}-{m.to_MM}-{d.to_DD}"
-  | .year_day y d         => s!"{y.to_YYYY}-{d.to_DDD}"
+  | .century y              => y.to_YY
+  | .year y                 => y.to_YYYY
+  | .year_month y m         => s!"{y.to_YYYY}-{m.to_MM}"
+  | .year_month_day y m d _ => s!"{y.to_YYYY}-{m.to_MM}-{d.to_DD}"
+  | .year_day y d _         => s!"{y.to_YYYY}-{d.to_DDD}"
 instance : Repr Date := ⟨fun date _ => date.extended_format⟩
 
 
@@ -388,12 +417,14 @@ def parse_basic_format (str : String) : Except String Date := do
       throw s!"Tried to parse YYYY-MM from {str} but failed"
     try
       let (d, s) ← Day.parse_DDD s
-      if s = "" then return .year_day y d
+      if p : d.val ≤ y.num_days then
+        if s = "" then return .year_day y d p
       throw s!"Could not parse year/day from {str}"
     catch _ =>
       let (m, s) ← Month.parse_MM s
       let (d, s) ← Day.parse_DD s
-      if s = "" then return .year_month_day y m d
+      if p : d.val ≤ (m.num_days y).val then
+        if s = "" then return .year_month_day y m d p
       throw s!"Failed to parse date from {str}!"
 
 def parse_extended_format (str : String) : Except String Date := do
@@ -405,7 +436,8 @@ def parse_extended_format (str : String) : Except String Date := do
 
   try
     let (d, s) ← Day.parse_DDD s
-    if s = "" then return .year_day y d
+    if p : d.val ≤ y.num_days then
+      if s = "" then return .year_day y d p
     throw s!"Could not parse year/day from {str}"
   catch _ =>
     let (m, s) ← Month.parse_MM s
@@ -413,7 +445,8 @@ def parse_extended_format (str : String) : Except String Date := do
     let s := s.drop 1
 
     let (d, s) ← Day.parse_DD s
-    if s = "" then return .year_month_day y m d
+    if p : d.val ≤ (m.num_days y).val then
+      if s = "" then return .year_month_day y m d p
     throw s!"Failed to parse date from {str}!"
 
 def parse (str : String) : Except String Date := do
