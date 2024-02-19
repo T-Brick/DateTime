@@ -19,7 +19,7 @@ Then you can add and use it in your projects:
 import DateTime
 
 -- Here's some examples of using the notation:
-#eval date% 2024-10-23
-#eval time% 14:54:32 + time% 13min -- 15:07:32
+#eval date% 2024-10-23 + 28 days      -- 2024-11-20
+#eval time% 14:54:32 + 13min          -- 15:07:32
 ```
 

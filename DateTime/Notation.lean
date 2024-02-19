@@ -22,6 +22,27 @@ macro_rules
 | `(date% $y:num-$m:num-$d:num) => `(Calendar.Date.year_month_day $y $m $d)
 
 
+declare_syntax_cat eng_date_offset
+syntax num "day"    : eng_date_offset
+syntax num "days"   : eng_date_offset
+syntax num "month"  : eng_date_offset
+syntax num "months" : eng_date_offset
+syntax num "year"   : eng_date_offset
+syntax num "years"  : eng_date_offset
+syntax "eng_date_offset%" eng_date_offset : term
+syntax "date%" date "+" eng_date_offset : term
+
+macro_rules
+| `(date% $d:date + $off:eng_date_offset) =>
+  `((date% $d:date) + (eng_date_offset% $off))
+| `(eng_date_offset% $d:num day)    => `((0,0,$d))
+| `(eng_date_offset% $d:num days)   => `((0,0,$d))
+| `(eng_date_offset% $m:num month)  => `((0,$m,0))
+| `(eng_date_offset% $m:num months) => `((0,$m,0))
+| `(eng_date_offset% $y:num year)   => `(($y,0,0))
+| `(eng_date_offset% $y:num years)  => `(($y,0,0))
+
+
 declare_syntax_cat time
 syntax str : time
 syntax num : time
@@ -57,9 +78,11 @@ syntax num "second" : eng_time
 syntax num "seconds" : eng_time
 syntax "eng_time%" eng_time : term
 syntax "time%" eng_time : term
+syntax "time%" time "+" eng_time : term
 
 macro_rules
 | `(time% $e:eng_time) => `(eng_time% $e)
+| `(time% $t:time + $e:eng_time) => `((time% $t:time) + (eng_time% $e))
 | `(eng_time% $hh:num h) =>
   `(Time.mk ⟨$hh, by decide⟩ ⟨0, by decide⟩ ⟨0, by decide⟩ (by simp))
 | `(eng_time% $hh:num hour) =>
