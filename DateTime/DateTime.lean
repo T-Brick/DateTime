@@ -83,8 +83,20 @@ def parse (str : String) : Except String DateTime.Offset := do
 
 end Offset
 
+/-- The real time system-wide `DateTime` in UTC -/
 def now : IO DateTime.Offset := do
   let s ← now_iso_seconds
+  match DateTime.Offset.parse s with
+  | .ok dt => return dt
+  | .error err =>
+    IO.eprintln s!"Received {err} when parsing system datetime"
+    panic! "Failed to parse system datetime!"
+
+/-- The start `DateTime` of the system's current epoch. Usually, this is the
+    Unix epoch (1970-01-01) but this is not guarenteed.
+  -/
+def epoch_start : IO DateTime.Offset := do
+  let s ← epoch_start_iso_seconds
   match DateTime.Offset.parse s with
   | .ok dt => return dt
   | .error err =>

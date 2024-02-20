@@ -9,7 +9,8 @@ def main : IO Unit := do
   IO.println str
   return
 
-#eval DateTime.now                      -- The current system time (UTC)
+#eval DateTime.now                      -- The current system-wide time (UTC)
+#eval DateTime.current_millis           -- Number of milliseconds since epoch
 
 
 open DateTime.Notation                  -- Examples using notation
