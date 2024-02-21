@@ -3,8 +3,6 @@ run-name: Build the game and save artifact
 on:
   workflow_dispatch:
     [push]
-  # push:
-  #   branches: [ "main" ]
 jobs:
   build:
     runs-on: ubuntu-latest
