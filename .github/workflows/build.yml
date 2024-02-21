@@ -1,8 +1,6 @@
 name: Build
 run-name: Build the game and save artifact
-on:
-  workflow_dispatch:
-    [push]
+on: [push]
 jobs:
   build:
     runs-on: ubuntu-latest
