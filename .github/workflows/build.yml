@@ -1,5 +1,5 @@
 name: Build
-run-name: Build the game and save artifact
+run-name: Build package
 on: [push]
 jobs:
   build:
@@ -20,5 +20,5 @@ jobs:
           lean --version
           lake --version
 
-      - name: building game
+      - name: build package
         run: env LEAN_ABORT_ON_PANIC=1 lake build
