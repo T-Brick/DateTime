@@ -1,6 +1,8 @@
 name: Build
 run-name: Build package
-on: [push, workflow_dispatch]
+on:
+  workflow_dispatch:
+  push:
 jobs:
   build:
     runs-on: ubuntu-latest
