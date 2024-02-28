@@ -37,7 +37,7 @@ elab "#get_libstdcpp" : command =>
 
 #get_libstdcpp -- now available as `libstdcpp` declaration
 
-package dateTime where
+package datetime where
   precompileModules := true
   moreLinkArgs := match libstdcpp with | none => #[] | some x => #[x.toString]
   -- add package configuration options here
