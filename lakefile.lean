@@ -13,13 +13,13 @@ lean_exe «datetime» where
   root := `Main
   supportInterpreter := true
 
-target ffi.o pkg : FilePath := do
-  let oFile := pkg.buildDir / "DateTime" / "c" / "ffi.o"
-  let srcJob ← inputFile <| pkg.dir / "DateTime" / "c"  / "ffi.cpp"
+target datetime.o pkg : FilePath := do
+  let oFile := pkg.buildDir / "DateTime" / "c" / "datetime.o"
+  let srcJob ← inputFile <| pkg.dir / "DateTime" / "c"  / "datetime.cpp"
   let weakArgs := #["-I", (← getLeanIncludeDir).toString]
-  buildO "ffi.cpp" oFile srcJob weakArgs #["-fPIC"] "c++" getLeanTrace
+  buildO "datetime.cpp" oFile srcJob weakArgs #["-fPIC"] "g++" getLeanTrace
 
-extern_lib libleanffi pkg := do
-  let name := nameToStaticLib "leanffi"
-  let ffiO ← fetch <| pkg.target ``ffi.o
-  buildStaticLib (pkg.nativeLibDir / name) #[ffiO]
+extern_lib lib_datetime pkg := do
+  let name := nameToStaticLib "datetime"
+  let datetimeO ← fetch <| pkg.target ``datetime.o
+  buildStaticLib (pkg.nativeLibDir / name) #[datetimeO]
