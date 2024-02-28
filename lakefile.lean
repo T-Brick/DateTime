@@ -1,8 +1,11 @@
 import Lake
 open Lake DSL
 
-/- copied from old eternity2 cadical impl
+/- Copied from our old eternity2 cadical linking struggles
   https://github.com/JamesGallicchio/eternity2/blob/c0e868a883aabb6b53b7bc8a86434cee5f295777/lean/lakefile.lean
+  https://leanprover.zulipchat.com/#narrow/stream/270676-lean4/topic/C.20FFI.20usage/near/316712266
+
+  Thanks james <333
 -/
 /-- Compute the path to `libstdc++.so.6` by running `whereis` -/
 elab "#get_libstdcpp" : command =>
