@@ -17,7 +17,7 @@ target datetime.o pkg : FilePath := do
   let oFile := pkg.buildDir / "DateTime" / "c" / "datetime.o"
   let srcJob ← inputFile <| pkg.dir / "DateTime" / "c"  / "datetime.cpp"
   let weakArgs := #["-I", (← getLeanIncludeDir).toString]
-  buildO "datetime.cpp" oFile srcJob weakArgs #["-fPIC"] (compiler := "cc") getLeanTrace
+  buildO "datetime.cpp" oFile srcJob weakArgs #["-fPIC", "-lstdc++"] (compiler := "cc") getLeanTrace
 
 extern_lib lib_datetime pkg := do
   let name := nameToStaticLib "datetime"
