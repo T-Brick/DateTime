@@ -3,6 +3,7 @@
 Authors: Thea Brick
 */
 #include <lean/lean.h>
+#include <chrono>
 
 /* DateTime.now_iso_seconds : IO String */
 extern "C" LEAN_EXPORT lean_object * lean_datetime_now_iso_sec(lean_object * /* w */) {
